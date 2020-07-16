@@ -89,60 +89,56 @@ exports.userFriendList = async (userId) => {
     return friendList;
 }
 
-exports.searchFriend = async (searchWord , userId) => {
-    try {
-        let keywordFilter = {
-            '$match': {
-
-            }
-        };
-        if ((searchWord != undefined && searchWord.length > 0) && searchWord != 'undefined') {
-            re = new RegExp(`${searchWord}`, 'i');
-            keywordFilter.$match = {
-                $or: [
-                    {
-                        'name': re
-                    },
-                    {
-                        'email': re
-                    }
-                ]
-            };
+exports.searchFriend = async (searchWord, userId) => {
+    let keywordFilter = {
+        '$match': {
 
         }
-        const userList = await user.aggregate([
-            {
-                $match : {
-                    _id : {
-                        $ne : mongoose.Types.ObjectId(userId)
-                    }
+    };
+    if ((searchWord != undefined && searchWord.length > 0) && searchWord != 'undefined') {
+        re = new RegExp(`${searchWord}`, 'i');
+        keywordFilter.$match = {
+            $or: [
+                {
+                    'name': re
+                },
+                {
+                    'email': re
                 }
-            },
-            {
-                '$project': {
-                    'name': 1,
-                    'email': 1
-                }
-            },
-            keywordFilter,
-            {
-                '$facet': {
-                    'userList': [{
-                        '$skip': 0
-                    }, {
-                        '$limit': 100
-                    }],
-                    'usersCount': [{
-                        '$count': 'count'
-                    }]
+            ]
+        };
+
+    }
+    const userList = await user.aggregate([
+        {
+            $match: {
+                _id: {
+                    $ne: mongoose.Types.ObjectId(userId)
                 }
             }
-        ]);
-        return userList;
-    } catch (error) {
-        console.log(error);
-        return false;
-    }
+        },
+        {
+            '$project': {
+                'name': 1,
+                'email': 1
+            }
+        },
+        keywordFilter,
+        {
+            '$facet': {
+                'userList': [{
+                    '$skip': 0
+                }, {
+                    '$limit': 100
+                }],
+                'usersCount': [{
+                    '$count': 'count'
+                }]
+            }
+        }
+    ]);
+    return userList;
+
 }
 
 exports.friendRequest = async (userId, sendTo) => {
@@ -218,45 +214,42 @@ exports.requestFriendList = async (userId) => {
 }
 
 exports.acceptFriendRequest = async (userId, friendId) => {
-    try {
-        await user.updateOne({
-            _id: mongoose.Types.ObjectId(friendId)
-        }, {
-            $push: {
-                friendList: {
-                    userId: mongoose.Types.ObjectId(userId)
-                }
-            },
-            $pull: {
-                'sendedRequest': {
-                    userId:
-                        mongoose.Types.ObjectId(userId)
-                }
-            },
-
-        });
-        const sendRequest = await user.updateOne({
-            _id: mongoose.Types.ObjectId(userId)
-        }, {
-            $push: {
-                friendList: {
-                    userId: mongoose.Types.ObjectId(friendId)
-                }
+    await user.updateOne({
+        _id: mongoose.Types.ObjectId(friendId)
+    }, {
+        $push: {
+            friendList: {
+                userId: mongoose.Types.ObjectId(userId)
             }
-            ,
-            $pull: {
-                'friendRequest': {
-                    userId:
-                        mongoose.Types.ObjectId(friendId)
+        },
+        $pull: {
+            'sendedRequest': {
+                userId:
+                    mongoose.Types.ObjectId(userId)
+            }
+        },
 
-                }
-            },
+    });
+    const sendRequest = await user.updateOne({
+        _id: mongoose.Types.ObjectId(userId)
+    }, {
+        $push: {
+            friendList: {
+                userId: mongoose.Types.ObjectId(friendId)
+            }
+        }
+        ,
+        $pull: {
+            'friendRequest': {
+                userId:
+                    mongoose.Types.ObjectId(friendId)
 
-        });
-        return sendRequest.nModified;
-    } catch (error) {
-        console.log(error);
-    }
+            }
+        },
+
+    });
+    return sendRequest.nModified;
+
 }
 
 exports.rejectFriendRequest = async (userId, friendId) => {
@@ -321,69 +314,69 @@ exports.alreadyReceivedRequest = async (userId, friendId) => {
     })
 }
 
-exports.friendSuggestion = async (userId) =>{
+exports.friendSuggestion = async (userId) => {
     const userList = await user.aggregate([
         {
-          '$match': {
-            '_id': mongoose.Types.ObjectId(userId)
-          }
-        }, {
-          '$unwind': {
-            'path': '$friendList', 
-            'preserveNullAndEmptyArrays': true
-          }
-        }, {
-          '$lookup': {
-            'from': 'user', 
-            'localField': 'friendList.userId', 
-            'foreignField': '_id', 
-            'as': 'friend'
-          }
-        }, {
-          '$unwind': {
-            'path': '$friend'
-          }
-        }, {
-          '$unwind': {
-            'path': '$friend.friendList'
-          }
-        }, {
-          '$project': {
-            'name': 1, 
-            'email': 1, 
-            'friendList': '$friend.friendList'
-          }
-        }, {
-          '$match': {
-            'friendList.userId': {
-              '$ne': mongoose.Types.ObjectId(userId)
+            '$match': {
+                '_id': mongoose.Types.ObjectId(userId)
             }
-          }
         }, {
-          '$lookup': {
-            'from': 'user', 
-            'localField': 'friendList.userId', 
-            'foreignField': '_id', 
-            'as': 'friendDetails'
-          }
-        }, {
-          '$unwind': {
-            'path': '$friendDetails'
-          }
-        }, {
-          '$project': {
-            '_id': '$friendDetails._id', 
-            'name': '$friendDetails.name', 
-            'email': '$friendDetails.email'
-          }
-        }, {
-          '$group': {
-            '_id': '$_id', 
-            'user': {
-              '$first': '$$ROOT'
+            '$unwind': {
+                'path': '$friendList',
+                'preserveNullAndEmptyArrays': true
             }
-          }
+        }, {
+            '$lookup': {
+                'from': 'user',
+                'localField': 'friendList.userId',
+                'foreignField': '_id',
+                'as': 'friend'
+            }
+        }, {
+            '$unwind': {
+                'path': '$friend'
+            }
+        }, {
+            '$unwind': {
+                'path': '$friend.friendList'
+            }
+        }, {
+            '$project': {
+                'name': 1,
+                'email': 1,
+                'friendList': '$friend.friendList'
+            }
+        }, {
+            '$match': {
+                'friendList.userId': {
+                    '$ne': mongoose.Types.ObjectId(userId)
+                }
+            }
+        }, {
+            '$lookup': {
+                'from': 'user',
+                'localField': 'friendList.userId',
+                'foreignField': '_id',
+                'as': 'friendDetails'
+            }
+        }, {
+            '$unwind': {
+                'path': '$friendDetails'
+            }
+        }, {
+            '$project': {
+                '_id': '$friendDetails._id',
+                'name': '$friendDetails.name',
+                'email': '$friendDetails.email'
+            }
+        }, {
+            '$group': {
+                '_id': '$_id',
+                'user': {
+                    '$first': '$$ROOT'
+                }
+            }
         }
-      ]);
-      return userList;
+    ]);
+    return userList;
 }

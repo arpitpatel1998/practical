@@ -60,7 +60,6 @@ userSchema.pre('updateOne', async function (cb) {
   try {
     var user = this;
     user._update.updatedAt = new Date();
-    console.log(user);
     cb();
   } catch (error) {
     cb(error);

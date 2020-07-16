@@ -58,7 +58,6 @@ exports.signupUser = async (req, res) => {
             return errorResponse(res,'Email is already registered');
         }
         const response = await signup(req.body);
-        console.log(response.message);
         if (response) {
             return successResponse(res, 'user signup successfully.');
         } else {
@@ -66,7 +65,6 @@ exports.signupUser = async (req, res) => {
         }
     }
     catch (error) {
-        console.log(error);
         return errorResponse(res, 'Something Went wrong, Server error', 500);
     }
 }

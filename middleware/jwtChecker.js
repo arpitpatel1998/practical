@@ -35,7 +35,6 @@ module.exports.jwtChecker = async (req, res, next) => {
     if (isExisted) {
       await this.verifyJwtToken(token).then((userData) => {
         // save decoded data in to req.tokenData
-        console.log(userData);
         req.user = userData.user;
         next();
       }).catch(() => {
